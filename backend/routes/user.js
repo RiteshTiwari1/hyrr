@@ -7,7 +7,7 @@ const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
 const { JWT_SECRET } = require("../config");
 const  { authMiddleware } = require("../middleware");
-
+const mailer = require('../helper/mailer');
 const signupBody = zod.object({
     username: zod.string(),
 	email: zod.string().email(),
@@ -51,6 +51,9 @@ router.post("/signup", async (req, res) => {
         email: req.body.email,
         password: hashedPassword,
     })
+
+    const msg = `<p>Hii, ${req.body.username}, Please <a href="http://localhost:${process.env.PORT || 3000}/mail-verification?id=${user._id}">Verify</a> your mail.</p>`;
+    mailer.sendMail(req.body.email, 'Mail Verification', msg);
 
     const userId = user._id;
 
@@ -134,6 +137,8 @@ router.get("/",authMiddleware, async(req,res) =>{
 
 
 
+
+
 // const updateBody = zod.object({
 // 	username: zod.string().optional(),
 //     email: zod.string().optional(),
@@ -196,3 +201,4 @@ router.get("/",authMiddleware, async(req,res) =>{
 // })
 
 module.exports = router;
+
