@@ -2,12 +2,15 @@
 const express = require('express');
 const router = express.Router();
 const zod = require("zod");
-const { User} = require("../db");
+const { User, PasswordReset} = require("../db");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
 const { JWT_SECRET } = require("../config");
 const  { authMiddleware } = require("../middleware");
 const mailer = require('../helper/mailer');
+const randomstring = require('randomstring');
+
+
 const signupBody = zod.object({
     username: zod.string(),
 	email: zod.string().email(),
@@ -45,7 +48,7 @@ router.post("/signup", async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-
+    // console.log(hashedPassword);
     const user = await User.create({
         username: req.body.username,
         email: req.body.email,
@@ -91,7 +94,7 @@ router.post("/signin", async (req, res) => {
     });
 
     if (user) {
-        // Compare the provided password with the hashed password in the database
+        
         const passwordMatch = await bcrypt.compare(req.body.password, user.password);
 
         if (passwordMatch) {
@@ -118,6 +121,54 @@ router.post("/signin", async (req, res) => {
     })
 })
 
+const forgetPasswordBody = zod.object({
+    email: zod.string().email()
+})
+
+router.post('/forgot-password',authMiddleware, async(req,res)=>{
+
+    
+    try{
+    const { success } = forgetPasswordBody.safeParse(req.body)
+    // console.log(success);
+    if (!success) {
+        return res.status(411).json({
+            message: "Incorrect inputs"
+        })
+    }
+
+    const user = await User.findOne({
+        email: req.body.email,
+    });
+    console.log(user);
+    if(!user){
+        return res.status(400).json({
+            msg:"Email doesn't exist"
+        })
+    }
+
+        const randomString = randomstring.generate();
+        const msg = '<p>Hii, ' + user.username + ', Please click <a href="http://127.0.0.1:3000/reset-password?token=' + randomString + '">here</a> to reset your password.</p>';
+        await PasswordReset.deleteMany({user_id:user._id})
+        const passwordReset = new PasswordReset({
+            user_id:user._id,
+            token:randomString
+        });
+
+        await passwordReset.save();
+
+        mailer.sendMail(user.email,'Reset Password',msg);
+        return res.status(201).json({
+            success:true,
+            msg:'Reset Password Link send to your mail, Please'
+        })
+    }
+    catch(err){
+        res.status(400).json({
+            message: err.message
+        })
+    }
+})
 router.get("/",authMiddleware, async(req,res) =>{
     const existingUser = await User.findOne({
         _id: req.userId
@@ -135,70 +186,6 @@ router.get("/",authMiddleware, async(req,res) =>{
     }
 })
 
-
-
-
-
-// const updateBody = zod.object({
-// 	username: zod.string().optional(),
-//     email: zod.string().optional(),
-//     password: zod.string().optional(),
-// })
-
-// router.put("/", authMiddleware, async (req, res) => {
-//     const { success } = updateBody.safeParse(req.body)
-//     if (!success) {
-//         res.status(411).json({
-//             message: "Error while updating information"
-//         })
-//     }
-//     console.log(req.body);
-//     const result = await User.updateOne(
-//         { _id: req.userId },
-//         { $set: req.body }
-//     );
-//     console.log(req.userId);
-//     console.log(result);
-//     if (result.modifiedCount > 0) {
-//         console.log(`User ${req.userId} updated successfully`);
-//         return res.json({
-//             message: "Updated successfully"
-//         });
-//     } else {
-//         return res.status(404).json({
-//             message: "User not found or no changes made"
-//         });
-//     }
-// })
-
-// router.delete("/delete",authMiddleware,(req,res)=>{
-    
-// })
-
-// router.get("/bulk", async (req, res) => {
-//     const filter = req.query.filter || "";
-
-//     const users = await User.find({
-//         $or: [{
-//             firstName: {
-//                 "$regex": filter
-//             }
-//         }, {
-//             lastName: {
-//                 "$regex": filter
-//             }
-//         }]
-//     })
-
-//     res.json({
-//         user: users.map(user => ({
-//             username: user.username,
-//             firstName: user.firstName,
-//             lastName: user.lastName,
-//             _id: user._id
-//         }))
-//     })
-// })
 
 module.exports = router;
 

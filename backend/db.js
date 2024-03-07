@@ -3,7 +3,7 @@ const mongoose = require('mongoose');
 require('dotenv').config();
 
 
-mongoose.connect(process.env.MONGODB_URI, { useNewUrlParser: true, useUnifiedTopology: true });
+mongoose.connect(process.env.MONGODB_URI);
 
 // Create a Schema for Users
 const userSchema = new mongoose.Schema({
@@ -44,14 +44,30 @@ const postSchema = new mongoose.Schema({
       type: Date,
       default: Date.now,
     },
-  });
+});
 
-  
+
+const passwordResetSchema = new mongoose.Schema({
+  user_id: {
+      type: String,
+      required: true,
+      ref:'User'
+  },
+  token: {
+      type: String,
+      required: true,
+  },
+
+});
+
+
 const Post = mongoose.model('Post', postSchema);
 
 const User = mongoose.model('User', userSchema);
 
+const PasswordReset = mongoose.model('PasswordReset',passwordResetSchema)
 module.exports = {
 	User,
-    Post
+    Post,
+    PasswordReset
 };
