@@ -47,6 +47,23 @@ const postSchema = new mongoose.Schema({
 });
 
 
+const commentSchema = new Schema(
+  {
+    comment: { type: String, required: true },
+    post: { type: Schema.Types.ObjectId, ref: "Post"},
+    user: { type: Schema.Types.ObjectId, ref: "User"},
+  },
+  { timestamps: true }
+)
+
+const replySchema = new Schema(
+  {
+    comment:{type : String},
+    reply: {type: Schema.Types.ObjectId , ref: "Comment"}
+  }
+)
+
+
 const passwordResetSchema = new mongoose.Schema({
   user_id: {
       type: String,
@@ -64,6 +81,7 @@ const passwordResetSchema = new mongoose.Schema({
 const Post = mongoose.model('Post', postSchema);
 
 const User = mongoose.model('User', userSchema);
+const Comment = mongoose.model('commentSchema', userSchema);
 
 const PasswordReset = mongoose.model('PasswordReset',passwordResetSchema)
 module.exports = {
